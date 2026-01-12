@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Privacy Suite API Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: #fff; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #2d5; }
+        .error { background: #d25; }
+        pre { background: #333; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Privacy Suite API Test</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = 'status ' + (isError ? 'error' : 'success');
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        function logJson(label, data) {
+            const heading = document.createElement('h3');
+            heading.textContent = label;
+            results.appendChild(heading);
+            
+            const pre = document.createElement('pre');
+            pre.textContent = JSON.stringify(data, null, 2);
+            results.appendChild(pre);
+        }
+        
+        // Test regular fetch
+        log('Testing fetch to http://127.0.0.1:3030/api/stats...');
+        fetch('http://127.0.0.1:3030/api/stats')
+            .then(res => {
+                log(`✓ Fetch succeeded! Status: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                logJson('Stats Data:', data);
+                
+                // Test SSE
+                log('Testing SSE connection to http://127.0.0.1:3030/api/stats/stream...');
+                const eventSource = new EventSource('http://127.0.0.1:3030/api/stats/stream');
+                
+                eventSource.onopen = () => {
+                    log('✓ SSE connection opened!');
+                };
+                
+                eventSource.onmessage = (event) => {
+                    log('✓ SSE message received!');
+                    logJson('SSE Data:', JSON.parse(event.data));
+                    eventSource.close();
+                };
+                
+                eventSource.onerror = (error) => {
+                    log(`✗ SSE error: ${error}`, true);
+                    console.error('SSE error:', error);
+                };
+            })
+            .catch(error => {
+                log(`✗ Fetch failed: ${error.message}`, true);
+                console.error('Fetch error:', error);
+            });
+    </script>
+</body>
+</html>

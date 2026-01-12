@@ -1,0 +1,14 @@
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\thiserror-2c264818e2738f75.d: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\aserror.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\display.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\var.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\private.rs C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\build\thiserror-b58edb4dde7a480e\out/private.rs
+
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\libthiserror-2c264818e2738f75.rlib: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\aserror.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\display.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\var.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\private.rs C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\build\thiserror-b58edb4dde7a480e\out/private.rs
+
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\libthiserror-2c264818e2738f75.rmeta: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\aserror.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\display.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\var.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\private.rs C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\build\thiserror-b58edb4dde7a480e\out/private.rs
+
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\lib.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\aserror.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\display.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\var.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\thiserror-2.0.17\src\private.rs:
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\build\thiserror-b58edb4dde7a480e\out/private.rs:
+
+# env-dep:OUT_DIR=C:\\Users\\roryt\\OneDrive\\Documents\\DUL\\gui\\target_new\\release\\build\\thiserror-b58edb4dde7a480e\\out

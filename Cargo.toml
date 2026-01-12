@@ -1,0 +1,91 @@
+[package]
+name = "privacy_suite"
+version = "0.1.0"
+edition = "2021"
+authors = ["DUL Privacy Suite"]
+description = "Next-generation privacy suite with multi-hop routing and blockchain integration"
+license = "SEE LICENSE FILE"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+async-trait = "0.1"
+
+# Tor integration
+arti-client = { version = "0.22", features = ["default"] }
+tor-rtcompat = "0.22"
+
+# Networking
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Encryption & Security
+ring = "0.17"
+rustls = "0.22"
+rustls-pemfile = "2.0"
+x25519-dalek = "2.0"
+chacha20poly1305 = "0.10"
+rand = "0.8"
+
+# DNS
+trust-dns-resolver = "0.23"
+hickory-resolver = "0.24"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utilities
+dirs = "5.0"
+
+# Database (for node registry)
+sled = "0.34"
+
+# Blockchain integration
+ethers = "2.0"
+web3 = "0.19"
+
+# Web API for GUI
+axum = { version = "0.7", features = ["macros"] }
+tower-http = { version = "0.5", features = ["cors"] }
+tokio-stream = "0.1"
+futures = "0.3"
+chrono = "0.4"
+open = "5.0"
+
+# Platform-specific network control
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.52", features = [
+    "Win32_NetworkManagement_IpHelper", 
+    "Win32_Networking_WinSock",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_Foundation"
+] }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.27", features = ["net"] }
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bin]]
+name = "privacy_suite"
+path = "src/main.rs"
+
+[lib]
+name = "privacy_suite"
+path = "src/lib.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
