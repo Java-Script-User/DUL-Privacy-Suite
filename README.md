@@ -41,10 +41,6 @@ System Requirements: Windows 10/11 (64-bit)
 
 The app automatically configures your system proxy, so all applications benefit from the protection.
 
-### For Developers
-
-Want to build from source or contribute? Check out [QUICK_START.md](QUICK_START.md) for detailed instructions.
-
 **Prerequisites:**
 - Rust 1.70+
 - Node.js 18+

@@ -1,0 +1,11 @@
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\safelog-5e250d4c08f4e6f5.d: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\err.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\flags.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\impls.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\../README.md
+
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\libsafelog-5e250d4c08f4e6f5.rlib: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\err.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\flags.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\impls.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\../README.md
+
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\libsafelog-5e250d4c08f4e6f5.rmeta: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\err.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\flags.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\impls.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\../README.md
+
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\lib.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\err.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\flags.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\impls.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\safelog-0.3.8\src\../README.md:

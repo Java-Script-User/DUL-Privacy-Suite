@@ -1,0 +1,10 @@
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\compression_core-eef9dbf585129be6.d: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\level.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\unshared.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\util.rs
+
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\libcompression_core-eef9dbf585129be6.rlib: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\level.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\unshared.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\util.rs
+
+C:\Users\roryt\OneDrive\Documents\DUL\gui\target_new\release\deps\libcompression_core-eef9dbf585129be6.rmeta: C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\lib.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\level.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\unshared.rs C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\util.rs
+
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\lib.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\level.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\unshared.rs:
+C:\Users\roryt\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\compression-core-0.4.31\src\util.rs:
