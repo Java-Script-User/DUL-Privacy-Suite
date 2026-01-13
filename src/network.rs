@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+// Module not fully implemented - placeholder for node management logic in the future
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
     pub address: String,
