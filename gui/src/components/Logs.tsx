@@ -242,7 +242,7 @@ function Logs({ logs, isDarkMode, initialFilter }: LogsProps) {
               {/* Expanded Details Panel */}
               {expandedLog === index && log.details && (
                 <div className={`ml-10 mt-2 p-4 rounded-xl border ${isDarkMode ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-100 border-gray-300'}`}>
-                  <h4 className={`text-sm font-bold mb-3 ${textPrimary}`}>📋 Request Details</h4>
+                  <h4 className={`text-sm font-bold mb-3 ${textPrimary}`}>Request Details</h4>
                   <div className="space-y-2 text-sm">
                     {log.details.threat_type && (
                       <div>

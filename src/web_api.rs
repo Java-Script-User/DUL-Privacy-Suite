@@ -318,7 +318,7 @@ async fn change_exit_country(
     state.update_stats(|s| s.exit_country = change.country.clone()).await;
     state.add_log("info", format!("🌍 Exit location changed to: {}", country_name), "network").await;
     
-    // Note: In a full implementation, you'd restart the Tor circuit here
+    // Tor circuit restart would be implemented here
     // For now, we just update the preference for the next connection
     
     let mut stats = state.stats.read().await.clone();

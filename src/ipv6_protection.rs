@@ -61,7 +61,7 @@ impl Ipv6Protection {
     pub fn disable_system_ipv6() -> Result<(), String> {
         info!("Attempting to disable IPv6 at system level...");
         
-        // Note: This requires admin privileges
+        // Requires admin privileges
         // In production, this would be done via:
         // netsh interface ipv6 set global randomizeidentifiers=disabled
         // netsh interface ipv6 set privacy state=disabled

@@ -28,11 +28,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
     return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Calculate fake ping and speeds for display (you can make these real later)
-  const ping = stats.proxy_running ? Math.floor(15 + Math.random() * 10) : 0;
-  const downloadSpeed = stats.proxy_running ? (45 + Math.random() * 15).toFixed(1) : "0.0";
-  const uploadSpeed = stats.proxy_running ? (12 + Math.random() * 8).toFixed(1) : "0.0";
-
   return (
     <div className="flex flex-col h-full px-8 py-6">
       {/* Connection Time Display */}
@@ -62,31 +57,18 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-4 gap-3 mb-6 px-2">
+      <div className="grid grid-cols-2 gap-3 mb-6 px-2">
         <MetricCard
-          icon="📡"
-          label="Ping"
-          value={ping > 0 ? `${ping} ms` : "-- ms"}
-          isDarkMode={isDarkMode}
-        />
-        <MetricCard
-          icon="⬇"
-          label="Download"
-          value={downloadSpeed !== "0.0" ? `${downloadSpeed} Mbps` : "-- Mbps"}
-          isDarkMode={isDarkMode}
-        />
-        <MetricCard
-          icon="⬆"
-          label="Upload"
-          value={uploadSpeed !== "0.0" ? `${uploadSpeed} Mbps` : "-- Mbps"}
-          isDarkMode={isDarkMode}
-        />
-        <MetricCard
-          icon="⚠"
-          label="Blocked"
+          label="Requests Blocked"
           value={stats.requests_blocked.toString()}
           isDarkMode={isDarkMode}
           onClick={() => onStatClick('all')}
+        />
+        <MetricCard
+          label="Total Requests"
+          value={stats.total_requests.toString()}
+          isDarkMode={isDarkMode}
+          onClick={() => onStatClick('network')}
         />
       </div>
 
@@ -284,7 +266,7 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
               }`}
             >
-              📋 Copy
+              Copy
             </button>
           </div>
           <div className={`p-3 rounded-lg ${
@@ -314,14 +296,13 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
 
 // Helper Components
 interface MetricCardProps {
-  icon: string;
   label: string;
   value: string;
   isDarkMode: boolean;
   onClick?: () => void;
 }
 
-function MetricCard({ icon, label, value, isDarkMode, onClick }: MetricCardProps) {
+function MetricCard({ label, value, isDarkMode, onClick }: MetricCardProps) {
   return (
     <div
       onClick={onClick}
@@ -333,7 +314,6 @@ function MetricCard({ icon, label, value, isDarkMode, onClick }: MetricCardProps
         onClick ? 'cursor-pointer' : ''
       }`}
     >
-      <div className="text-2xl mb-2">{icon}</div>
       <p className={`text-xs mb-1.5 ${
         isDarkMode ? 'text-slate-500' : 'text-gray-500'
       }`}>{label}</p>

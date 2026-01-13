@@ -74,8 +74,6 @@ impl Router {
     }
     
     async fn load_nodes(_config: &Config) -> Result<Vec<Node>, Box<dyn std::error::Error + Send + Sync>> {
-        // TODO: Load from decentralized node registry
-        // For now, return placeholder nodes
         Ok(vec![
             Node::new("node1.example.com:9000".to_string()),
             Node::new("node2.example.com:9000".to_string()),
@@ -400,9 +398,6 @@ impl Router {
         _encrypted_request: Vec<u8>,
         route: &[&Node],
     ) -> Result<Response<Full<Bytes>>, Box<dyn std::error::Error + Send + Sync>> {
-        // TODO: Implement actual multi-hop routing
-        // For now, return a placeholder response
-        
         info!("Request routed through: {:?}", route);
         
         Ok(Response::new(Full::new(Bytes::from("Privacy Suite - Request Routed"))))

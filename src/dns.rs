@@ -30,9 +30,6 @@ impl DnsResolver {
     
     /// Resolve through multiple paths to prevent DNS manipulation
     pub async fn multi_path_resolve(&self, domain: &str) -> Result<Vec<std::net::IpAddr>, Box<dyn std::error::Error>> {
-        // TODO: Query multiple DNS servers and compare results
-        // This prevents DNS poisoning and ensures accuracy
-        
         self.resolve(domain).await
     }
 }

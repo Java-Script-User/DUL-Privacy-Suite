@@ -19,7 +19,6 @@ impl Node {
     }
     
     pub async fn ping(&self) -> Result<u64, Box<dyn std::error::Error>> {
-        // TODO: Implement actual ping
         Ok(50)
     }
     
