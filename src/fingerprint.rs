@@ -13,7 +13,7 @@ pub struct BrowserFingerprint {
 }
 
 impl BrowserFingerprint {
-    /// Generate a randomized but realistic browser fingerprint
+    // Generate a realistic randomized fingerprint
     pub fn random() -> Self {
         let mut rng = rand::thread_rng();
         
@@ -42,7 +42,7 @@ impl BrowserFingerprint {
         }
     }
     
-    /// Apply this fingerprint to HTTP request headers
+    // Apply fingerprint headers
     pub fn apply_to_headers(&self, headers: &mut hyper::HeaderMap) {
         headers.insert(
             hyper::header::USER_AGENT,
@@ -59,7 +59,6 @@ impl BrowserFingerprint {
     }
 }
 
-/// Canvas fingerprinting protection
 #[derive(Clone)]
 pub struct CanvasProtection {
     enabled: bool,
@@ -70,20 +69,17 @@ impl CanvasProtection {
         Self { enabled }
     }
 
-    /// Add random noise to canvas data to prevent fingerprinting
+    // Add light noise to canvas data
     pub fn add_noise(data: &mut [u8]) {
         let mut rng = rand::thread_rng();
-        
-        // Add minimal noise that doesn't affect visual appearance
         for pixel in data.iter_mut().step_by(4) {
             if rng.gen_bool(0.01) {
-                // Modify ~1% of pixels by ±1
                 *pixel = pixel.saturating_add(if rng.gen_bool(0.5) { 1 } else { 255 });
             }
         }
     }
 
-    /// Get JavaScript injection code to block canvas fingerprinting
+    // JS hook for canvas fingerprint resistance
     pub fn get_injection_script(&self) -> Option<String> {
         if !self.enabled {
             return None;
@@ -94,11 +90,8 @@ impl CanvasProtection {
 (function() {
     'use strict';
     
-    // Poison canvas fingerprinting
     const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
     const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
-    
-    // Add noise to canvas data
     function addNoise(imageData) {
         const data = imageData.data;
         for (let i = 0; i < data.length; i += 4) {
@@ -108,8 +101,6 @@ impl CanvasProtection {
         }
         return imageData;
     }
-    
-    // Override toDataURL
     HTMLCanvasElement.prototype.toDataURL = function() {
         const context = this.getContext('2d');
         if (context) {
@@ -119,14 +110,10 @@ impl CanvasProtection {
         }
         return originalToDataURL.apply(this, arguments);
     };
-    
-    // Override getImageData
     CanvasRenderingContext2D.prototype.getImageData = function() {
         const imageData = originalGetImageData.apply(this, arguments);
         return addNoise(imageData);
     };
-    
-    console.log('🛡️ Canvas fingerprinting protection active');
 })();
 </script>
 "#.to_string())

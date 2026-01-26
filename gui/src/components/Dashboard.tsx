@@ -21,6 +21,7 @@ interface DashboardProps {
 }
 
 function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConnecting }: DashboardProps) {
+  // Format elapsed time
   const formatUptime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -30,7 +31,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
 
   return (
     <div className="flex flex-col h-full px-8 py-6">
-      {/* Connection Time Display */}
       <div className="text-center mb-6 px-4">
         <p className={`text-xs font-medium mb-2 ${
           isDarkMode ? 'text-slate-500' : 'text-gray-500'
@@ -56,7 +56,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
         </div>
       </div>
 
-      {/* Stats Cards Grid */}
       <div className="grid grid-cols-2 gap-3 mb-6 px-2">
         <MetricCard
           label="Requests Blocked"
@@ -72,9 +71,7 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
         />
       </div>
 
-      {/* Large Central Power Button */}
       <div className="flex-1 flex justify-center items-center relative px-4 min-h-0">
-        {/* Outer glow rings */}
         {stats.proxy_running && (
           <>
             <div className="absolute w-80 h-80 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 blur-3xl animate-pulse"></div>
@@ -85,7 +82,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
           <div className="absolute w-64 h-64 rounded-full bg-slate-700/20 blur-3xl"></div>
         )}
         
-        {/* Power Button */}
         <button
           onClick={onToggleConnection}
           disabled={isConnecting}
@@ -102,7 +98,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
             border: stats.proxy_running ? '3px solid rgba(34, 197, 94, 0.5)' : '3px solid rgba(100, 116, 139, 0.3)'
           }}
         >
-          {/* Inner circle with pattern */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className={`w-40 h-40 rounded-full flex items-center justify-center ${
               stats.proxy_running
@@ -111,7 +106,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
                   ? 'bg-slate-700/50'
                   : 'bg-gray-300/50'
             }`}>
-              {/* Geometric pattern */}
               <svg width="120" height="120" viewBox="0 0 120 120" className={`${
                 stats.proxy_running ? 'animate-spin-slow' : ''
               }`}>
@@ -144,28 +138,42 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
                 />
               </svg>
               
-              {/* Power Icon */}
               <div className="absolute">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke={stats.proxy_running ? "#22c55e" : isDarkMode ? "#64748b" : "#9ca3af"}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2v10" />
-                  <path d="M18.4 6.6a9 9 0 1 1-12.77.04" />
-                </svg>
+                {isConnecting ? (
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={isDarkMode ? "#64748b" : "#9ca3af"}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="animate-spin"
+                  >
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={stats.proxy_running ? "#22c55e" : isDarkMode ? "#64748b" : "#9ca3af"}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 2v10" />
+                    <path d="M18.4 6.6a9 9 0 1 1-12.77.04" />
+                  </svg>
+                )}
               </div>
             </div>
           </div>
         </button>
       </div>
 
-      {/* Bottom Quick Stats */}
       <div className={`mx-4 mb-3 p-4 rounded-xl flex-shrink-0 ${
         isDarkMode ? 'bg-slate-900/50 border border-slate-800' : 'bg-white/50 border border-gray-300'
       }`}>
@@ -193,7 +201,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
         </div>
       </div>
 
-      {/* Protection Details - Expandable */}
       <details className={`mx-4 mb-3 p-4 rounded-xl flex-shrink-0 ${
         isDarkMode ? 'bg-slate-900/50 border border-slate-800' : 'bg-white/50 border border-gray-300'
       }`}>
@@ -236,7 +243,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
         </div>
       </details>
 
-      {/* Configuration */}
       <details className={`mx-4 mb-4 p-4 rounded-xl flex-shrink-0 ${
         isDarkMode ? 'bg-slate-900/50 border border-slate-800' : 'bg-white/50 border border-gray-300'
       }`}>
@@ -294,7 +300,6 @@ function Dashboard({ stats, isDarkMode, onStatClick, onToggleConnection, isConne
   );
 }
 
-// Helper Components
 interface MetricCardProps {
   label: string;
   value: string;

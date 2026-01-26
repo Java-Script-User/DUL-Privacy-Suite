@@ -17,6 +17,7 @@ pub struct ProxyServer {
 }
 
 impl ProxyServer {
+    // Create a new proxy server
     pub async fn new(config: Config, app_state: Option<ApiState>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let router = Router::new(config.clone(), app_state.clone()).await?;
         
@@ -27,13 +28,12 @@ impl ProxyServer {
         })
     }
     
+    // Main accept loop
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let addr: std::net::SocketAddr = self.config.proxy_addr().parse()?;
         let listener = TcpListener::bind(addr).await?;
         
         info!("Proxy server listening on {}", addr);
-        
-        // Spawn statistics reporter
         let stats_router = self.router.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
@@ -57,21 +57,16 @@ impl ProxyServer {
                     let app_state = self.app_state.clone();
                     
                     tokio::spawn(async move {
-                        // Read first line to check if it's CONNECT
                         let mut buffer = vec![0u8; 8192];
                         match stream.peek(&mut buffer).await {
                             Ok(n) if n > 0 => {
                                 let request_start = String::from_utf8_lossy(&buffer[..n]);
-                                
                                 if request_start.starts_with("CONNECT ") {
-                                    // Handle HTTPS tunnel
                                     if let Err(e) = handle_connect_tunnel(stream, router, app_state).await {
                                         error!("CONNECT tunnel error: {}", e);
                                     }
                                 } else {
-                                    // Handle regular HTTP with hyper
                                     let io = TokioIo::new(stream);
-                                    
                                     let service = service_fn(move |req| {
                                         let router = router.clone();
                                         async move {
@@ -101,17 +96,15 @@ impl ProxyServer {
     }
 }
 
+// Handle HTTPS CONNECT
 async fn handle_connect_tunnel(
     mut client_stream: tokio::net::TcpStream,
     router: Router,
     app_state: Option<ApiState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Read CONNECT request
     let mut buffer = vec![0u8; 8192];
     let n = client_stream.read(&mut buffer).await?;
     let request = String::from_utf8_lossy(&buffer[..n]);
-    
-    // Parse CONNECT target (e.g., "CONNECT example.com:443 HTTP/1.1")
     let first_line = request.lines().next().ok_or("Empty request")?;
     let parts: Vec<&str> = first_line.split_whitespace().collect();
     
@@ -127,7 +120,6 @@ async fn handle_connect_tunnel(
         state.update_stats(|s| s.total_requests += 1).await;
     }
     
-    // Parse host:port
     let host_port: Vec<&str> = target.split(':').collect();
     if host_port.len() != 2 {
         return Err("Invalid host:port in CONNECT".into());
@@ -135,11 +127,7 @@ async fn handle_connect_tunnel(
     
     let host = host_port[0];
     let port: u16 = host_port[1].parse()?;
-    
-    // Connect through Tor
     let tor_stream = router.connect_through_tor(host, port).await?;
-    
-    // Send success response to client
     client_stream.write_all(b"HTTP/1.1 200 Connection Established\r\n\r\n").await?;
     client_stream.flush().await?;
     
@@ -148,15 +136,10 @@ async fn handle_connect_tunnel(
     if let Some(ref state) = app_state {
         state.add_log("info", format!("✅ HTTPS tunnel established to {} via Tor", target), "network").await;
     }
-    
-    // Start bidirectional copy
     let (mut client_read, mut client_write) = client_stream.split();
     let (mut tor_read, mut tor_write) = tokio::io::split(tor_stream);
-    
     let client_to_tor = tokio::io::copy(&mut client_read, &mut tor_write);
     let tor_to_client = tokio::io::copy(&mut tor_read, &mut client_write);
-    
-    // Run both directions concurrently
     tokio::select! {
         result = client_to_tor => {
             if let Err(e) = result {
@@ -179,16 +162,14 @@ async fn handle_connect_tunnel(
     Ok(())
 }
 
+// Handle plain HTTP requests
 async fn handle_request(
     req: Request<hyper::body::Incoming>,
     router: Router,
 ) -> Result<Response<Full<Bytes>>, hyper::Error> {
     let method = req.method().clone();
     let uri = req.uri().clone();
-    
     info!("📡 HTTP Request: {} {}", method, uri);
-    
-    // Route through multi-hop network
     match router.route_request(req).await {
         Ok(response) => Ok(response),
         Err(e) => {

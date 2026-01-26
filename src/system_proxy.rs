@@ -1,7 +1,5 @@
 use std::process::Command;
 use tracing::{info, error};
-
-/// System proxy configuration for Windows
 pub struct SystemProxy {
     original_state: Option<ProxyState>,
 }
@@ -13,25 +11,21 @@ struct ProxyState {
 }
 
 impl SystemProxy {
+    // Create proxy helper
     pub fn new() -> Self {
         Self {
             original_state: None,
         }
     }
 
-    /// Enable system-wide proxy automatically
+    // Enable system proxy
     pub fn enable(&mut self, proxy_addr: &str) -> Result<(), String> {
         info!("Configuring system proxy...");
-        
-        // Save current state first
         self.original_state = Some(self.get_current_state()?);
         
         #[cfg(target_os = "windows")]
         {
-            // Enable Windows system proxy
             self.enable_windows(proxy_addr)?;
-            
-            // Also notify browsers to refresh their proxy settings
             self.notify_browsers();
             
             Ok(())
@@ -44,7 +38,7 @@ impl SystemProxy {
         }
     }
 
-    /// Disable system-wide proxy and restore original settings
+    // Restore system proxy
     pub fn disable(&self) -> Result<(), String> {
         info!("Restoring original proxy settings...");
         
@@ -71,7 +65,6 @@ impl SystemProxy {
 
     #[cfg(target_os = "windows")]
     fn get_current_state(&self) -> Result<ProxyState, String> {
-        // Query current proxy settings from registry
         let output = Command::new("reg")
             .args(&[
                 "query",
@@ -107,7 +100,6 @@ impl SystemProxy {
 
     #[cfg(target_os = "windows")]
     fn enable_windows(&self, proxy_addr: &str) -> Result<(), String> {
-        // Set proxy server
         let result1 = Command::new("reg")
             .args(&[
                 "add",
@@ -127,7 +119,6 @@ impl SystemProxy {
             return Err("Failed to set proxy server in registry".to_string());
         }
 
-        // Enable proxy
         let result2 = Command::new("reg")
             .args(&[
                 "add",
@@ -147,7 +138,6 @@ impl SystemProxy {
             return Err("Failed to enable proxy in registry".to_string());
         }
 
-        // Refresh settings (trigger Windows to recognize the change)
         let _ = Command::new("rundll32.exe")
             .args(&["wininet.dll,InternetSetOption", "0", "39", "0", "0"])
             .output();
@@ -158,7 +148,6 @@ impl SystemProxy {
 
     #[cfg(target_os = "windows")]
     fn disable_windows(&self) -> Result<(), String> {
-        // Disable proxy
         let result = Command::new("reg")
             .args(&[
                 "add",
@@ -178,7 +167,6 @@ impl SystemProxy {
             return Err("Failed to disable proxy in registry".to_string());
         }
 
-        // Refresh settings
         let _ = Command::new("rundll32.exe")
             .args(&["wininet.dll,InternetSetOption", "0", "39", "0", "0"])
             .output();
@@ -188,14 +176,9 @@ impl SystemProxy {
     }
     
     #[cfg(target_os = "windows")]
+    // Nudge browsers to reload settings
     fn notify_browsers(&self) {
-        // Kill and restart browser processes to force them to pick up new proxy settings
-        // This is aggressive but ensures browsers use the proxy
-        
         info!("Notifying browsers of proxy change...");
-        
-        // For Chrome-based browsers (Chrome, Edge, Brave)
-        // They read from Windows registry but need a nudge
         let _ = Command::new("taskkill")
             .args(&["/F", "/IM", "chrome.exe"])
             .output();
@@ -205,8 +188,6 @@ impl SystemProxy {
         let _ = Command::new("taskkill")
             .args(&["/F", "/IM", "brave.exe"])
             .output();
-            
-        // For Firefox (uses its own proxy settings, but respects system proxy if not overridden)
         let _ = Command::new("taskkill")
             .args(&["/F", "/IM", "firefox.exe"])
             .output();
@@ -217,15 +198,15 @@ impl SystemProxy {
 
 impl Drop for SystemProxy {
     fn drop(&mut self) {
-        // Automatically restore settings when app closes
+        // Best-effort restore
         if let Err(e) = self.disable() {
             error!("Failed to restore proxy settings on exit: {}", e);
         }
     }
 }
 
-/// Check if running with administrator privileges (required for system proxy)
 pub fn is_elevated() -> bool {
+    // Check admin rights
     #[cfg(target_os = "windows")]
     {
         use std::mem;
@@ -252,4 +233,45 @@ pub fn is_elevated() -> bool {
         }
     }
     false
+}
+
+#[cfg(target_os = "windows")]
+pub fn allow_inbound_port(port: u16) -> Result<(), String> {
+    let rule_name = "Privacy Suite Proxy";
+    let _ = Command::new("netsh")
+        .args(&[
+            "advfirewall",
+            "firewall",
+            "delete",
+            "rule",
+            &format!("name={}", rule_name),
+        ])
+        .output();
+
+    let status = Command::new("netsh")
+        .args(&[
+            "advfirewall",
+            "firewall",
+            "add",
+            "rule",
+            &format!("name={}", rule_name),
+            "dir=in",
+            "action=allow",
+            "protocol=TCP",
+            &format!("localport={}", port),
+            "profile=private,domain",
+        ])
+        .output()
+        .map_err(|e| format!("Failed to add firewall rule: {}", e))?;
+
+    if !status.status.success() {
+        return Err("Failed to configure firewall rule".to_string());
+    }
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn allow_inbound_port(_port: u16) -> Result<(), String> {
+    Ok(())
 }

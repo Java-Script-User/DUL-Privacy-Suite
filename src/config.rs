@@ -4,44 +4,26 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    /// Local proxy server address
     pub proxy_addr: String,
-    
-    /// Number of hops in multi-hop routing
     pub num_hops: usize,
-    
-    /// DNS server addresses
     pub dns_servers: Vec<String>,
-    
-    /// Enable browser fingerprint randomization
     pub fingerprint_protection: bool,
-    
-    /// Tracker blocking lists
     pub tracker_lists: Vec<String>,
-    
-    /// Blockchain configuration
     pub blockchain: BlockchainConfig,
-    
-    /// Node registry database path
     pub node_db_path: String,
-    
     #[serde(skip)]
     config_path: PathBuf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockchainConfig {
-    /// Ethereum RPC endpoint
     pub eth_rpc: String,
-    
-    /// Payment contract address
     pub payment_contract: String,
-    
-    /// User wallet address (optional)
     pub wallet_address: Option<String>,
 }
 
 impl Config {
+    // Load from disk or create defaults
     pub fn load_or_create() -> Result<Self, Box<dyn std::error::Error>> {
         let config_dir = Self::config_dir()?;
         let config_path = config_dir.join("config.toml");
@@ -60,12 +42,14 @@ impl Config {
         }
     }
     
+    // Config directory under home
     fn config_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
         let home = dirs::home_dir()
             .ok_or("Could not determine home directory")?;
         Ok(home.join(".privacy_suite"))
     }
     
+    // Default config with saved path
     fn default_with_path(path: PathBuf) -> Self {
         let mut config = Self::default();
         config.config_path = path;

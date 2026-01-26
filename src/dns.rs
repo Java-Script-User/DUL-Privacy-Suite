@@ -7,8 +7,8 @@ pub struct DnsResolver {
 }
 
 impl DnsResolver {
+    // Create resolver
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        // Use DNS-over-TLS or DNS-over-HTTPS
         let resolver = TokioAsyncResolver::tokio(
             ResolverConfig::cloudflare(),
             ResolverOpts::default(),
@@ -17,6 +17,7 @@ impl DnsResolver {
         Ok(Self { resolver })
     }
     
+    // Resolve hostname
     pub async fn resolve(&self, domain: &str) -> Result<Vec<std::net::IpAddr>, Box<dyn std::error::Error>> {
         info!("Resolving: {}", domain);
         
@@ -27,8 +28,7 @@ impl DnsResolver {
         
         Ok(ips)
     }
-    
-    /// Resolve through multiple paths to prevent DNS manipulation
+    // Multi-path resolve hook
     pub async fn multi_path_resolve(&self, domain: &str) -> Result<Vec<std::net::IpAddr>, Box<dyn std::error::Error>> {
         self.resolve(domain).await
     }

@@ -19,13 +19,9 @@ mod system_proxy;
 
 use config::Config;
 use web_api::ApiState;
-
-/// Get local LAN IP address for network-wide access
 fn get_lan_ip() -> Option<String> {
     use std::net::UdpSocket;
-    
-    // Connect to a public DNS server (doesn't actually send data)
-    // This forces the OS to determine which network interface to use
+    // Detect local interface
     let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
     socket.connect("8.8.8.8:80").ok()?;
     socket.local_addr().ok().map(|addr| addr.ip().to_string())
@@ -33,31 +29,25 @@ fn get_lan_ip() -> Option<String> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize logging
+    // Logging
     tracing_subscriber::fmt()
         .with_env_filter("privacy_suite=info")
         .init();
 
     info!("🚀 Starting Privacy Suite...");
     
-    // Load configuration
+    // Config
     let config = Config::load_or_create()?;
     info!("Configuration loaded from: {}", config.config_path().display());
-    
-    // Initialize kill switch (disabled by default)
+    // Core services
     let kill_switch = kill_switch::KillSwitch::new();
-    
-    // Initialize system proxy manager
     let sys_proxy = std::sync::Arc::new(tokio::sync::RwLock::new(system_proxy::SystemProxy::new()));
-    
-    // Initialize API state with kill switch and config
     let api_state = ApiState::new(config.clone())
         .with_kill_switch(kill_switch.clone())
         .with_system_proxy(sys_proxy.clone());
     api_state.add_log("info", "Privacy Suite starting...".to_string(), "general").await;
     api_state.add_log("info", "ℹ️ Click CONNECT button to start privacy protection".to_string(), "general").await;
-    
-    // Check for admin rights for system proxy capability
+    // Environment
     let is_admin = system_proxy::is_elevated();
     let lan_ip = get_lan_ip();
     info!("Admin status: {}", is_admin);
@@ -81,9 +71,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     
-    // Start web API server first (so UI can connect immediately)
+    // API server
     info!("🌐 Starting Web API on http://127.0.0.1:3030");
-    // Start web API server
     info!("🌐 Starting Web API on http://127.0.0.1:3030");
     let web_api_state = api_state.clone();
     tokio::spawn(async move {
@@ -92,12 +81,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
     
-    // Wait for web API to start
+    // Give API time to boot
     tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
     
     info!("✅ Privacy Suite ready!");
     info!("📊 Web GUI: http://127.0.0.1:1420");
     info!("🔌 Proxy: {} (disconnected - click Connect in GUI)", config.proxy_addr());
+
+    if is_admin {
+        api_state.add_log("info", "Auto-starting protection and system proxy...".to_string(), "general").await;
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(5))
+            .build();
+        if let Ok(client) = client {
+            for attempt in 1..=10 {
+                let result = client
+                    .post("http://127.0.0.1:3030/api/connection")
+                    .json(&serde_json::json!({ "connect": true }))
+                    .send()
+                    .await;
+                if result.is_ok() {
+                    break;
+                }
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                if attempt == 10 {
+                    api_state.add_log("warn", "Auto-start failed. Use CONNECT button.".to_string(), "general").await;
+                }
+            }
+        }
+    } else {
+        api_state.add_log("warn", "Run as Administrator for automatic system proxy (seamless mode)".to_string(), "general").await;
+    }
     
     if let Some(ref ip) = lan_ip {
         info!("🌐 Network-wide access: Configure devices to use {}:8888", ip);
@@ -106,19 +120,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     info!("Press Ctrl+C to stop");
     
-    // Keep running until interrupted
+    // Wait for shutdown
     tokio::signal::ctrl_c().await?;
     info!("Shutting down...");
     api_state.add_log("info", "Shutting down Privacy Suite...".to_string(), "general").await;
-    
-    // CRITICAL: Disable kill switch before exiting to restore internet
+    // Safe shutdown
     if let Some(ref ks) = api_state.kill_switch {
         info!("Disabling kill switch...");
         ks.set_enabled(false).await;
         api_state.add_log("info", "Kill switch disabled".to_string(), "general").await;
     }
-    
-    // Restore original proxy settings if we changed them
     if system_proxy::is_elevated() {
         info!("Restoring original proxy settings...");
         let proxy = sys_proxy.read().await;

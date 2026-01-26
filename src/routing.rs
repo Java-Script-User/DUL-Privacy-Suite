@@ -18,7 +18,6 @@ pub struct Router {
     crypto: CryptoLayer,
     nodes: Vec<Node>,
     tor: TorNetwork,
-    fingerprint: BrowserFingerprint,
     tracker_blocker: TrackerBlocker,
     webrtc_protection: WebRtcProtection,
     kill_switch: KillSwitch,
@@ -28,32 +27,21 @@ pub struct Router {
 }
 
 impl Router {
+    // Build router and privacy modules
     pub async fn new(config: Config, app_state: Option<ApiState>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let crypto = CryptoLayer::new();
         
-        // Load available nodes from database/registry
         let nodes = Self::load_nodes(&config).await?;
-        
-        // Initialize Tor connection
         info!("Connecting to Tor network...");
         let tor = TorNetwork::new().await?;
         info!("✅ Connected to Tor! Using 6,000+ volunteer nodes");
-        
-        // Initialize privacy features
-        let fingerprint = BrowserFingerprint::random();
-        info!("✅ Browser fingerprint randomization enabled");
-        
         let tracker_blocker = TrackerBlocker::new();
         info!("✅ Tracker blocking enabled ({} domains)", tracker_blocker.blocklist_size());
-        
         info!("✅ DNS-over-HTTPS encryption enabled");
-        
-        // Initialize advanced security features
         let webrtc_protection = WebRtcProtection::new(true);
         let ipv6_protection = Ipv6Protection::new(true);
         let canvas_protection = CanvasProtection::new(true);
         info!("✅ Canvas fingerprinting protection enabled");
-        
         let kill_switch = KillSwitch::new();
         kill_switch.set_tor_status(true).await;
         info!("✅ Kill switch enabled");
@@ -63,7 +51,6 @@ impl Router {
             crypto,
             nodes,
             tor,
-            fingerprint,
             tracker_blocker,
             webrtc_protection,
             kill_switch,
@@ -73,6 +60,7 @@ impl Router {
         })
     }
     
+    // Load available nodes (placeholder)
     async fn load_nodes(_config: &Config) -> Result<Vec<Node>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(vec![
             Node::new("node1.example.com:9000".to_string()),
@@ -81,12 +69,10 @@ impl Router {
         ])
     }
     
-    /// Detect security risks and malicious tracking patterns
+    // Detect basic risky patterns
     async fn detect_security_risks(&self, host: &str, path: &str, method: &str) {
         if let Some(state) = &self.app_state {
             let full_url = format!("{}{}", host, path);
-            
-            // Detect credential leaks in URL
             let credential_patterns = vec![
                 ("password", "Password in URL"),
                 ("pwd", "Password in URL"),
@@ -118,8 +104,6 @@ impl Router {
                     state.add_log_with_details("error", format!("⚠️ SECURITY: {} - {}", threat, host), "security", Some(details)).await;
                 }
             }
-            
-            // Detect suspicious tracking patterns
             let tracking_patterns = vec![
                 ("/track", "Tracking endpoint"),
                 ("/collect", "Data collection endpoint"),
@@ -150,8 +134,6 @@ impl Router {
                     state.add_log_with_details("warn", format!("🔍 {} detected: {}", tracking_type, host), "security", Some(details)).await;
                 }
             }
-            
-            // Detect malicious domains patterns
             let malicious_patterns = vec![
                 ("analytics", "Analytics service"),
                 ("doubleclick", "Ad network"),
@@ -181,8 +163,6 @@ impl Router {
                     state.add_log_with_details("info", format!("🕵️ {} detected: {}", service_type, host), "security", Some(details)).await;
                 }
             }
-            
-            // Detect unencrypted connections
             if host.starts_with("http://") {
                 let details = LogDetails {
                     url: Some(full_url.clone()),
@@ -202,6 +182,7 @@ impl Router {
         }
     }
     
+    // Route a request through protections and Tor
     pub async fn route_request(
         &self,
         req: Request<hyper::body::Incoming>,
@@ -209,7 +190,6 @@ impl Router {
         let method = req.method().clone();
         let uri = req.uri().clone();
         
-        // Check kill switch first
         if !self.kill_switch.should_allow_traffic().await {
             warn!("🚫 Kill switch: Blocking request (Tor disconnected)");
             if let Some(state) = &self.app_state {
@@ -235,13 +215,9 @@ impl Router {
                 .body(Full::new(Bytes::from("Service unavailable: Privacy protection disconnected")))
                 .unwrap());
         }
-        
-        // Increment total requests
         if let Some(state) = &self.app_state {
             state.update_stats(|s| s.total_requests += 1).await;
         }
-        
-        // Log all domains being accessed
         if let Some(host) = uri.host() {
             let path = uri.path();
             let port = uri.port_u16().unwrap_or(443);
@@ -263,10 +239,7 @@ impl Router {
                 state.add_log_with_details("info", format!("🌐 {}", full_url), "network", Some(details)).await;
             }
             
-            // Detect security risks and malicious tracking patterns
             self.detect_security_risks(host, path, method.as_str()).await;
-            
-            // Check IPv6 protection
             if self.ipv6_protection.should_block_ipv6(host) {
                 warn!("🚫 Blocked IPv6 request: {}", host);
                 if let Some(state) = &self.app_state {
@@ -293,8 +266,6 @@ impl Router {
                     .body(Full::new(Bytes::from("IPv6 blocked for privacy protection")))
                     .unwrap());
             }
-            
-            // Check WebRTC protection
             if self.webrtc_protection.should_block_request(host, port) {
                 warn!("🚫 Blocked WebRTC/STUN request: {}:{}", host, port);
                 if let Some(state) = &self.app_state {
@@ -321,8 +292,6 @@ impl Router {
                     .body(Full::new(Bytes::from("WebRTC blocked for privacy protection")))
                     .unwrap());
             }
-            
-            // Check if domain should be blocked
             if self.tracker_blocker.should_block(host) {
                 warn!("🚫 Blocked tracker: {}{}", host, path);
                 if let Some(state) = &self.app_state {
@@ -350,9 +319,22 @@ impl Router {
                     .unwrap());
             }
         }
-        
-        // Route through Tor's existing 3-hop circuit with randomized fingerprint
-        let response = self.tor.route_request(req, &self.fingerprint).await?;
+        let fingerprint = BrowserFingerprint::random();
+        if let Some(state) = &self.app_state {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let ua = fingerprint.user_agent.clone();
+            state
+                .update_stats(|s| {
+                    s.fingerprints_randomized += 1;
+                    s.last_fingerprint_at = Some(now);
+                    s.last_fingerprint_user_agent = Some(ua);
+                })
+                .await;
+        }
+        let response = self.tor.route_request(req, &fingerprint).await?;
         
         if let Some(state) = &self.app_state {
             state.add_log("info", "✅ Routed through Tor (3 encrypted hops)".to_string(), "network").await;
@@ -361,6 +343,7 @@ impl Router {
         Ok(response)
     }
     
+    // Create a Tor tunnel for CONNECT
     pub async fn connect_through_tor(
         &self,
         host: &str,
@@ -374,32 +357,27 @@ impl Router {
         
         self.tor.connect_stream(host, port).await
     }
-    
-    /// Get statistics about blocked trackers
+    // Tracker stats
     pub fn get_stats(&self) -> (usize, u64) {
         (self.tracker_blocker.blocklist_size(), self.tracker_blocker.total_blocked())
     }
-    
+    // Random multi-hop selection
     fn select_route(&self) -> Vec<&Node> {
-        // Randomly select nodes for the route
         use rand::seq::SliceRandom;
         let mut rng = rand::thread_rng();
-        
         let num_hops = self.config.num_hops.min(self.nodes.len());
         let mut selected: Vec<&Node> = self.nodes.iter().collect();
         selected.shuffle(&mut rng);
         selected.truncate(num_hops);
-        
         selected
     }
-    
+    // Placeholder for custom routing
     async fn send_through_route(
         &self,
         _encrypted_request: Vec<u8>,
         route: &[&Node],
     ) -> Result<Response<Full<Bytes>>, Box<dyn std::error::Error + Send + Sync>> {
         info!("Request routed through: {:?}", route);
-        
         Ok(Response::new(Full::new(Bytes::from("Privacy Suite - Request Routed"))))
     }
 }

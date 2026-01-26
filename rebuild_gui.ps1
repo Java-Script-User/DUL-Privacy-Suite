@@ -1,10 +1,10 @@
-# Stop all running processes
 Write-Host "Stopping all processes..." -ForegroundColor Yellow
+# Release rebuild for GUI
+Write-Host "" 
 Get-Process -Name "gui" -ErrorAction SilentlyContinue | Stop-Process -Force
 Get-Process -Name "privacy_suite" -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 3
 
-# Verify processes are stopped
 $retries = 0
 while ((Get-Process -Name "privacy_suite" -ErrorAction SilentlyContinue) -and $retries -lt 5) {
     Write-Host "Waiting for privacy_suite to stop..." -ForegroundColor Yellow
@@ -17,7 +17,6 @@ if (Get-Process -Name "privacy_suite" -ErrorAction SilentlyContinue) {
     exit 1
 }
 
-# Build with Tauri CLI (builds frontend + bundles it properly) in RELEASE mode
 Write-Host "Building Tauri app (release mode)..." -ForegroundColor Cyan
 Set-Location gui
 npm run tauri build
@@ -29,7 +28,6 @@ if ($LASTEXITCODE -ne 0) {
 
 Set-Location ..
 
-# Copy backend to GUI directory
 Write-Host "Copying backend..." -ForegroundColor Cyan
 Copy-Item "target\release\privacy_suite.exe" "gui\src-tauri\target\release\privacy_suite.exe" -Force -ErrorAction SilentlyContinue
 

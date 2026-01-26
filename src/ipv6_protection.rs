@@ -1,10 +1,5 @@
 use tracing::{info, warn};
 use std::net::IpAddr;
-
-/// IPv6 Leak Protection
-/// 
-/// Many VPNs/proxies only route IPv4, causing IPv6 traffic to leak the real IP.
-/// This module detects and blocks IPv6 requests.
 #[derive(Clone)]
 pub struct Ipv6Protection {
     enabled: bool,
@@ -12,6 +7,7 @@ pub struct Ipv6Protection {
 }
 
 impl Ipv6Protection {
+    // Create protection module
     pub fn new(enabled: bool) -> Self {
         if enabled {
             info!("🛡️ IPv6 leak protection enabled - All IPv6 traffic will be blocked");
@@ -22,13 +18,12 @@ impl Ipv6Protection {
         }
     }
 
-    /// Check if an IP address or host is IPv6 and should be blocked
+    // IPv6 detection
     pub fn should_block_ipv6(&self, host: &str) -> bool {
         if !self.enabled {
             return false;
         }
 
-        // Try to parse as IP address
         if let Ok(ip_addr) = host.parse::<IpAddr>() {
             if ip_addr.is_ipv6() {
                 self.blocked_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -37,7 +32,6 @@ impl Ipv6Protection {
             }
         }
 
-        // Check for IPv6 notation in host (e.g., [2001:db8::1])
         if host.starts_with('[') && host.contains(':') {
             self.blocked_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             warn!("🚫 Blocked IPv6 host notation: {}", host);
@@ -47,7 +41,7 @@ impl Ipv6Protection {
         false
     }
 
-    /// Get number of blocked IPv6 requests
+    // Stats
     pub fn get_blocked_count(&self) -> u64 {
         self.blocked_count.load(std::sync::atomic::Ordering::Relaxed)
     }
@@ -56,19 +50,12 @@ impl Ipv6Protection {
         self.enabled
     }
 
-    /// Disable IPv6 at system level (Windows-specific)
     #[cfg(target_os = "windows")]
+    // Best-effort system disable
     pub fn disable_system_ipv6() -> Result<(), String> {
         info!("Attempting to disable IPv6 at system level...");
-        
-        // Requires admin privileges
-        // In production, this would be done via:
-        // netsh interface ipv6 set global randomizeidentifiers=disabled
-        // netsh interface ipv6 set privacy state=disabled
-        
         warn!("System-level IPv6 disable requires administrator privileges");
         warn!("For maximum protection, manually disable IPv6 in Windows network settings");
-        
         Ok(())
     }
 

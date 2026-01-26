@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use tauri::Manager;
+use tauri::{Manager, menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem}, tray::{TrayIconBuilder, TrayIconEvent}, Emitter};
+use tauri::WindowEvent;
+use std::process::Command;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Stats {
@@ -9,6 +11,9 @@ struct Stats {
     trackers_blocked: u64,
     webrtc_blocked: u64,
     ipv6_blocked: u64,
+    fingerprints_randomized: u64,
+    last_fingerprint_at: Option<u64>,
+    last_fingerprint_user_agent: Option<String>,
     total_requests: u64,
     proxy_running: bool,
     auto_proxy_enabled: bool,
@@ -124,12 +129,11 @@ async fn toggle_connection(connect: bool) -> Result<Stats, String> {
 
 #[tauri::command]
 async fn shutdown_backend() -> Result<(), String> {
+    // Request backend shutdown
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
-    
-    // Try to shutdown backend gracefully
     let _ = client
         .post("http://127.0.0.1:3030/api/shutdown")
         .send()
@@ -138,22 +142,137 @@ async fn shutdown_backend() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn close_window_only(app: tauri::AppHandle) -> Result<(), String> {
+    // Hide window but keep running
+    if let Some(window) = app.get_webview_window("main") {
+        window.hide().map_err(|e| format!("Failed to hide window: {}", e))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn shutdown_and_exit(app: tauri::AppHandle) -> Result<(), String> {
+    // Stop backend then exit
+    let _ = shutdown_backend().await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    app.exit(0);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![get_stats, get_logs, toggle_kill_switch, toggle_connection, shutdown_backend])
+        .plugin(tauri_plugin_dialog::init())
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                // Use custom close dialog
+                api.prevent_close();
+                let window_clone = window.clone();
+                println!("Close requested - showing close dialog");
+                let _ = window_clone.emit("show-close-dialog", ());
+            }
+        })
+        .invoke_handler(tauri::generate_handler![get_stats, get_logs, toggle_kill_switch, toggle_connection, shutdown_backend, close_window_only, shutdown_and_exit])
         .setup(|app| {
-            // Auto-start backend if not already running
+            #[cfg(target_os = "windows")]
+            {
+                let elevated = Command::new("net")
+                    .args(["session"])
+                    .output()
+                    .map(|o| o.status.success())
+                    .unwrap_or(false);
+                if !elevated {
+                    if let Ok(exe_path) = std::env::current_exe() {
+                        let _ = Command::new("powershell")
+                            .args([
+                                "-Command",
+                                &format!("Start-Process -FilePath '{}' -Verb RunAs", exe_path.display()),
+                            ])
+                            .spawn();
+                    }
+                    app.handle().exit(0);
+                    return Ok(());
+                }
+            }
+
+            #[cfg(target_os = "windows")]
+            {
+                if let Ok(resource_dir) = app.path().resource_dir() {
+                    let bundled = resource_dir.join("lyrebird.exe");
+                    if bundled.exists() {
+                        let exe_path = std::env::current_exe().unwrap_or_default();
+                        let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
+                        let target = exe_dir.join("lyrebird.exe");
+                        if !target.exists() {
+                            let _ = std::fs::copy(&bundled, &target);
+                        }
+                    }
+                }
+            }
+
+            // Tray menu
+            let show = MenuItemBuilder::with_id("show", "Show Window").build(app)?;
+            let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
+            let quit = MenuItemBuilder::with_id("quit", "Exit").build(app)?;
+            let menu = MenuBuilder::new(app)
+                .item(&show)
+                .item(&separator)
+                .item(&quit)
+                .build()?;
+            let tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .menu_on_left_click(false)
+                .tooltip("Privacy Suite")
+                .on_menu_event(|app, event| match event.id().as_ref() {
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            let _ = window.unminimize();
+                        }
+                    }
+                    "quit" => {
+                        // Graceful backend shutdown
+                        println!("Tray quit requested - shutting down backend...");
+                        let _ = reqwest::blocking::Client::new()
+                            .post("http://127.0.0.1:3030/api/shutdown")
+                            .timeout(std::time::Duration::from_secs(2))
+                            .send();
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    // Toggle window on left click
+                    if let TrayIconEvent::Click { button, .. } = event {
+                        if button == tauri::tray::MouseButton::Left {
+                            let app = tray.app_handle();
+                            if let Some(window) = app.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    let _ = window.hide();
+                                } else {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                    let _ = window.unminimize();
+                                }
+                            }
+                        }
+                    }
+                })
+                .build(app)?;
+            app.manage(tray);
+
+            // Start backend if needed
             std::thread::spawn(move || {
-                // Check if backend is already running
                 let backend_running = std::net::TcpStream::connect("127.0.0.1:3030").is_ok();
                 
                 if !backend_running {
                     println!("Backend not running, starting it...");
-                    
-                    // Get the directory where the GUI executable is located
                     let exe_path = std::env::current_exe().unwrap_or_default();
                     let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
                     let backend_path = exe_dir.join("privacy_suite.exe");
@@ -161,7 +280,6 @@ pub fn run() {
                     println!("Looking for backend at: {:?}", backend_path);
                     
                     if backend_path.exists() {
-                        // Start the backend process with admin rights
                         #[cfg(target_os = "windows")]
                         {
                             use std::os::windows::process::CommandExt;
@@ -178,7 +296,6 @@ pub fn run() {
                             match result {
                                 Ok(_) => {
                                     println!("Backend started successfully");
-                                    // Wait for backend to initialize
                                     for i in 0..30 {
                                         std::thread::sleep(std::time::Duration::from_millis(500));
                                         if std::net::TcpStream::connect("127.0.0.1:3030").is_ok() {

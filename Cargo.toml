@@ -12,7 +12,7 @@ tokio = { version = "1.35", features = ["full"] }
 async-trait = "0.1"
 
 # Tor integration
-arti-client = { version = "0.22", features = ["default"] }
+arti-client = { version = "0.22", features = ["default", "bridge-client", "pt-client"] }
 tor-rtcompat = "0.22"
 
 # Networking

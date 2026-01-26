@@ -1,11 +1,6 @@
 use tracing::{info, warn};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-/// Kill Switch - Blocks all traffic if Tor connection fails
-/// 
-/// This prevents IP leaks when the Tor network disconnects.
-/// In a production app, this would integrate with OS firewall rules.
 #[derive(Clone)]
 pub struct KillSwitch {
     state: Arc<RwLock<KillSwitchState>>,
@@ -19,6 +14,7 @@ struct KillSwitchState {
 }
 
 impl KillSwitch {
+    // Create kill switch
     pub fn new() -> Self {
         info!("🔒 Kill switch initialized");
         Self {
@@ -30,7 +26,7 @@ impl KillSwitch {
         }
     }
 
-    /// Set Tor connection status
+    // Update Tor state
     pub async fn set_tor_status(&self, connected: bool) {
         let mut state = self.state.write().await;
         state.tor_connected = connected;
@@ -42,12 +38,12 @@ impl KillSwitch {
         }
     }
 
-    /// Check if traffic should be allowed
+    // Gate traffic based on Tor status
     pub async fn should_allow_traffic(&self) -> bool {
         let mut state = self.state.write().await;
         
         if !state.kill_switch_active {
-            return true; // Kill switch disabled
+            return true;
         }
 
         if !state.tor_connected {
@@ -59,7 +55,7 @@ impl KillSwitch {
         true
     }
 
-    /// Enable or disable kill switch
+    // Enable or disable
     pub async fn set_enabled(&self, enabled: bool) {
         let mut state = self.state.write().await;
         state.kill_switch_active = enabled;
@@ -71,7 +67,7 @@ impl KillSwitch {
         }
     }
 
-    /// Get current statistics
+    // Read stats
     pub async fn get_stats(&self) -> KillSwitchStats {
         let state = self.state.read().await;
         KillSwitchStats {
@@ -81,7 +77,6 @@ impl KillSwitch {
         }
     }
 
-    /// Check if Tor is connected
     pub async fn is_tor_connected(&self) -> bool {
         let state = self.state.read().await;
         state.tor_connected

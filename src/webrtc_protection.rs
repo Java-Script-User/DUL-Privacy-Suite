@@ -1,16 +1,12 @@
 use tracing::{info, warn};
 use std::net::IpAddr;
-
-/// WebRTC Leak Protection
-/// 
-/// WebRTC can leak real IP addresses even when using Tor/VPN through STUN requests.
-/// This module detects and blocks WebRTC STUN/TURN requests that could reveal the user's IP.
 #[derive(Clone)]
 pub struct WebRtcProtection {
     enabled: bool,
 }
 
 impl WebRtcProtection {
+    // Create protection module
     pub fn new(enabled: bool) -> Self {
         if enabled {
             info!("🛡️ WebRTC leak protection enabled");
@@ -18,13 +14,12 @@ impl WebRtcProtection {
         Self { enabled }
     }
 
-    /// Check if a request is a WebRTC STUN/TURN request that should be blocked
+    // Detect STUN/TURN or direct IP
     pub fn should_block_request(&self, host: &str, _port: u16) -> bool {
         if !self.enabled {
             return false;
         }
 
-        // Block common STUN/TURN servers
         let stun_servers = [
             "stun.l.google.com",
             "stun1.l.google.com",
@@ -46,7 +41,6 @@ impl WebRtcProtection {
             }
         }
 
-        // Block direct IP connections (often used for WebRTC)
         if host.parse::<IpAddr>().is_ok() {
             warn!("🚫 Blocked direct IP connection attempt: {}", host);
             return true;
@@ -55,16 +49,14 @@ impl WebRtcProtection {
         false
     }
 
-    /// Generate headers to disable WebRTC in browser
+    // Response headers to discourage WebRTC
     pub fn get_protection_headers(&self) -> Vec<(&'static str, String)> {
         if !self.enabled {
             return vec![];
         }
 
         vec![
-            // Feature policy to disable WebRTC
             ("Permissions-Policy", "camera=(), microphone=(), geolocation=()".to_string()),
-            // Additional security headers
             ("X-WebRTC-Block", "true".to_string()),
         ]
     }

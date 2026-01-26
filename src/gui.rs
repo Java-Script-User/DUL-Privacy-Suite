@@ -57,6 +57,7 @@ pub struct PrivacySuiteApp {
 }
 
 impl PrivacySuiteApp {
+    // Create UI with shared state
     pub fn new(_cc: &eframe::CreationContext<'_>, state: Arc<RwLock<AppState>>) -> Self {
         Self { state }
     }
@@ -64,14 +65,14 @@ impl PrivacySuiteApp {
 
 impl eframe::App for PrivacySuiteApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Get current state (use try_read to avoid blocking UI)
+        // Read state safely
         let state = if let Ok(s) = self.state.try_read() {
             s.clone()
         } else {
             AppState::default()
         };
 
-        // Custom colors
+        // UI palette
         let green = egui::Color32::from_rgb(46, 204, 113);
         let red = egui::Color32::from_rgb(231, 76, 60);
         let blue = egui::Color32::from_rgb(52, 152, 219);
@@ -85,7 +86,6 @@ impl eframe::App for PrivacySuiteApp {
                 .show(ui, |ui| {
                     ui.add_space(8.0);
                     
-                    // Compact title
                     ui.horizontal(|ui| {
                         ui.heading(egui::RichText::new("🛡️ Privacy Suite").size(22.0).strong());
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -101,7 +101,6 @@ impl eframe::App for PrivacySuiteApp {
                     ui.separator();
                     ui.add_space(8.0);
 
-                    // Compact connection status
                     egui::Frame::none()
                         .fill(dark_bg)
                         .rounding(6.0)
@@ -132,11 +131,8 @@ impl eframe::App for PrivacySuiteApp {
 
                     ui.add_space(10.0);
 
-                    // Compact statistics
                     ui.label(egui::RichText::new("Statistics").size(16.0).strong());
                     ui.add_space(5.0);
-                    
-                    // Stats grid - 2x2
                     ui.horizontal(|ui| {
                         egui::Frame::none()
                             .fill(blue)
@@ -200,8 +196,6 @@ impl eframe::App for PrivacySuiteApp {
                     });
                     
                     ui.add_space(5.0);
-                    
-                    // Total protected - highlight
                     egui::Frame::none()
                         .fill(green)
                         .rounding(6.0)
@@ -220,7 +214,6 @@ impl eframe::App for PrivacySuiteApp {
 
                     ui.add_space(10.0);
 
-                    // Compact protections
                     ui.label(egui::RichText::new("Active Protections").size(16.0).strong());
                     ui.add_space(5.0);
                     
@@ -258,7 +251,6 @@ impl eframe::App for PrivacySuiteApp {
 
                     ui.add_space(10.0);
 
-                    // Configuration
                     ui.label(egui::RichText::new("Setup").size(16.0).strong());
                     ui.add_space(5.0);
                     
@@ -287,7 +279,6 @@ impl eframe::App for PrivacySuiteApp {
 
                     ui.add_space(8.0);
 
-                    // Buttons
                     ui.horizontal(|ui| {
                         let copy_btn = egui::Button::new(egui::RichText::new("📋 Copy").size(12.0))
                             .fill(blue)
@@ -300,15 +291,12 @@ impl eframe::App for PrivacySuiteApp {
                             .fill(egui::Color32::from_gray(50))
                             .min_size(egui::vec2(80.0, 30.0));
                         if ui.add(help_btn).clicked() {
-                            // Help text shown below
                         }
                     });
 
                     ui.add_space(8.0);
                     ui.separator();
                     ui.add_space(5.0);
-                    
-                    // Footer
                     ui.horizontal(|ui| {
                         ui.label(egui::RichText::new("Privacy Suite v0.1.0").size(10.0).color(egui::Color32::GRAY));
                     });
@@ -317,12 +305,13 @@ impl eframe::App for PrivacySuiteApp {
                 });
         });
 
-        // Request repaint to keep UI updated
+        // Refresh UI
         ctx.request_repaint_after(std::time::Duration::from_secs(1));
     }
 }
 
 pub async fn run_gui(state: Arc<RwLock<AppState>>) -> Result<(), eframe::Error> {
+    // Native window config
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([550.0, 750.0])
@@ -330,7 +319,6 @@ pub async fn run_gui(state: Arc<RwLock<AppState>>) -> Result<(), eframe::Error> 
             .with_max_inner_size([600.0, 900.0])
             .with_resizable(true)
             .with_icon(
-                // Load icon if available
                 eframe::icon_data::from_png_bytes(&[]).unwrap_or_default()
             ),
         ..Default::default()

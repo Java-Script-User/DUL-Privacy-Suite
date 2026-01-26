@@ -19,6 +19,7 @@ interface Stats {
 
 
 function App() {
+  // Reference implementation
   const [stats, setStats] = useState<Stats>({
     tor_connected: false,
     kill_switch_active: false,
@@ -129,7 +130,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f1624] text-white flex flex-col relative overflow-hidden">
-      {/* Subtle Grid Pattern Background */}
       <div 
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
@@ -138,7 +138,6 @@ function App() {
         }}
       ></div>
       <div className="container mx-auto px-6 py-6 max-w-lg flex flex-col flex-1 relative z-10">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,9 +174,7 @@ function App() {
 
         {activeTab === 'dashboard' ? (
           <div className="flex flex-col flex-1">
-            {/* Top Section - Status and Timer */}
             <div className="space-y-4 mb-6">
-              {/* Status Badge */}
               <div className="flex justify-center">
                 <div className={`inline-flex items-center space-x-2 px-5 py-2.5 rounded-full backdrop-blur-xl ${
                   stats.tor_connected 
@@ -191,7 +188,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Timer Display */}
               <div className="text-center">
                 <div className="text-5xl font-light tracking-widest mb-1 text-purple-100">
                   {formatUptime(stats.uptime_seconds)}
@@ -200,7 +196,6 @@ function App() {
               </div>
             </div>
 
-            {/* Middle Section - Power Button */}
             <div className="flex justify-center items-center flex-1">
               <button
                 onClick={toggleConnection}
@@ -235,9 +230,7 @@ function App() {
               </button>
             </div>
 
-            {/* Bottom Section - Stats and System Status */}
             <div className="space-y-3 px-6 pb-4">
-              {/* Stats List */}
               <div className="space-y-2">
                 <button 
                   onClick={() => { setLogFilter('tracker'); setActiveTab('logs'); }}
@@ -318,7 +311,6 @@ function App() {
                 </button>
               </div>
 
-            {/* Kill Switch */}
             <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-red-500/15 to-orange-500/15 rounded-2xl backdrop-blur-xl border border-red-500/30 shadow-lg shadow-red-500/10">
               <div className="flex items-center space-x-3">
                 <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,7 +335,6 @@ function App() {
               </button>
             </div>
 
-            {/* System Status */}
             <div className="px-6 py-4 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 shadow-lg">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
@@ -378,7 +369,6 @@ function App() {
           <Logs logs={logs} isDarkMode={true} initialFilter={logFilter} />
         )}
 
-        {/* Crypto Donation Modal */}
         {showDonateModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4" onClick={() => setShowDonateModal(false)}>
             <div className="bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f1624] rounded-3xl p-8 max-w-md w-full border border-purple-500/20 shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -404,7 +394,6 @@ function App() {
               </p>
 
               <div className="space-y-3">
-                {/* Bitcoin */}
                 <div className="p-4 bg-white/5 rounded-xl border border-purple-500/20 backdrop-blur-xl hover:border-purple-500/40 transition-colors">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
@@ -425,7 +414,6 @@ function App() {
                   </div>
                 </div>
 
-                {/* Ethereum */}
                 <div className="p-4 bg-white/5 rounded-xl border border-purple-500/20 backdrop-blur-xl hover:border-purple-500/40 transition-colors">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">

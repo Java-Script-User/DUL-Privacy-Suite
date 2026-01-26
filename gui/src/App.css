@@ -1,6 +1,5 @@
-/* Modern animations and transitions */
-
 @keyframes fade-in {
+  /* entry fade */
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -12,6 +11,7 @@
 }
 
 @keyframes slide-up {
+  /* entry slide */
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -23,6 +23,7 @@
 }
 
 @keyframes glow-pulse {
+  /* soft pulse */
   0%, 100% {
     opacity: 0.5;
   }
@@ -32,6 +33,7 @@
 }
 
 @keyframes spin-slow {
+  /* slow rotation */
   from {
     transform: rotate(0deg);
   }
@@ -54,13 +56,13 @@
   animation: spin-slow 20s linear infinite;
 }
 
-/* Smooth transitions for all interactive elements */
 * {
+  /* smooth interactions */
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
+  /* custom scrollbar */
   width: 10px;
   height: 10px;
 }
@@ -79,14 +81,14 @@
   background: linear-gradient(to bottom, #2563eb, #7c3aed);
 }
 
-/* Glassmorphism effect enhancement */
 .backdrop-blur-2xl {
+  /* stronger blur */
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
 }
 
-/* Number animation */
 @keyframes number-pop {
+  /* numeric pulse */
   0% {
     transform: scale(1);
   }

@@ -1,4 +1,3 @@
-// Tauri API type declarations
 declare global {
   interface Window {
     __TAURI__?: {

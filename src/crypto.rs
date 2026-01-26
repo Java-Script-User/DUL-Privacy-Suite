@@ -7,13 +7,11 @@ use crate::network::Node;
 
 #[derive(Clone)]
 pub struct CryptoLayer {
-    // Private key for this session
     session_key: Vec<u8>,
 }
 
 impl CryptoLayer {
     pub fn new() -> Self {
-        // Generate session key
         let mut key = vec![0u8; 32];
         use rand::RngCore;
         rand::thread_rng().fill_bytes(&mut key);
@@ -23,7 +21,6 @@ impl CryptoLayer {
         }
     }
     
-    /// Build encrypted onion layers for multi-hop routing
     pub fn build_onion_layers(
         &self,
         req: hyper::Request<hyper::body::Incoming>,
@@ -49,8 +46,6 @@ impl CryptoLayer {
         _node: &Node,
     ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         let cipher = ChaCha20Poly1305::new_from_slice(&self.session_key)?;
-        
-        // Generate random nonce
         let mut nonce_bytes = [0u8; 12];
         use rand::RngCore;
         rand::thread_rng().fill_bytes(&mut nonce_bytes);
@@ -59,8 +54,6 @@ impl CryptoLayer {
         let ciphertext = cipher
             .encrypt(nonce, data)
             .map_err(|e| format!("Encryption error: {}", e))?;
-        
-        // Prepend nonce to ciphertext
         let mut result = nonce_bytes.to_vec();
         result.extend_from_slice(&ciphertext);
         
@@ -85,7 +78,6 @@ impl CryptoLayer {
     }
 }
 
-/// Generate X25519 key pair for node identity
 pub fn generate_keypair() -> (EphemeralSecret, PublicKey) {
     let secret = EphemeralSecret::random_from_rng(OsRng);
     let public = PublicKey::from(&secret);

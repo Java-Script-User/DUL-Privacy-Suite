@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-// Module not fully implemented - placeholder for node management logic in the future
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Node {
     pub address: String,
@@ -11,6 +9,7 @@ pub struct Node {
 }
 
 impl Node {
+    // Create a node entry
     pub fn new(address: String) -> Self {
         Self {
             address,
@@ -25,22 +24,22 @@ impl Node {
     }
     
     pub fn is_available(&self) -> bool {
-        // Check if node is responsive and has good reputation
         self.reputation > 0.5
     }
 }
 
 pub struct NodeRegistry {
-    // Database handle for node registry
     db: sled::Db,
 }
 
 impl NodeRegistry {
+    // Open node registry DB
     pub fn new(db_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let db = sled::open(db_path)?;
         Ok(Self { db })
     }
     
+    // Store a node
     pub fn add_node(&self, node: &Node) -> Result<(), Box<dyn std::error::Error>> {
         let key = node.address.as_bytes();
         let value = serde_json::to_vec(node)?;
@@ -48,9 +47,9 @@ impl NodeRegistry {
         Ok(())
     }
     
+    // Load available nodes
     pub fn get_all_nodes(&self) -> Result<Vec<Node>, Box<dyn std::error::Error>> {
         let mut nodes = Vec::new();
-        
         for item in self.db.iter() {
             let (_key, value) = item?;
             let node: Node = serde_json::from_slice(&value)?;

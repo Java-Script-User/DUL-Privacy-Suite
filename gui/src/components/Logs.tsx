@@ -32,15 +32,15 @@ function Logs({ logs, isDarkMode, initialFilter }: LogsProps) {
   const [autoScroll, setAutoScroll] = useState(true);
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
 
-  // Update filter when initialFilter prop changes
+  // Sync initial filter
   useEffect(() => {
     if (initialFilter) {
       setFilter(initialFilter);
     }
   }, [initialFilter]);
 
+  // Auto-scroll when enabled
   useEffect(() => {
-    // Auto-scroll to bottom if enabled
     if (autoScroll && logs.length > 0) {
       setTimeout(() => {
         const logContainer = document.getElementById("log-container");
@@ -51,9 +51,8 @@ function Logs({ logs, isDarkMode, initialFilter }: LogsProps) {
     }
   }, [logs, autoScroll]);
 
+  // Apply filters
   const filteredLogs = logs.filter((log) => {
-    // "everything" shows all logs
-    // "all" filter shows all blocked/protected traffic (trackers, webrtc, ipv6, security)
     const categoryMatch = filter === "everything"
       ? true
       : filter === "all" 
@@ -138,7 +137,6 @@ function Logs({ logs, isDarkMode, initialFilter }: LogsProps) {
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
       <div className={cardClass}>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-4">
@@ -195,7 +193,6 @@ function Logs({ logs, isDarkMode, initialFilter }: LogsProps) {
         </div>
       </div>
 
-      {/* Logs Container */}
       <div
         id="log-container"
         className={`${cardClass} h-[600px] overflow-y-auto space-y-2`}
@@ -239,7 +236,6 @@ function Logs({ logs, isDarkMode, initialFilter }: LogsProps) {
                 </div>
               </div>
               
-              {/* Expanded Details Panel */}
               {expandedLog === index && log.details && (
                 <div className={`ml-10 mt-2 p-4 rounded-xl border ${isDarkMode ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-100 border-gray-300'}`}>
                   <h4 className={`text-sm font-bold mb-3 ${textPrimary}`}>Request Details</h4>
@@ -302,7 +298,6 @@ function Logs({ logs, isDarkMode, initialFilter }: LogsProps) {
         )}
       </div>
 
-      {/* Stats */}
       <div className={cardClass}>
         <div className="flex items-center justify-between text-sm">
           <span className={textSecondary}>
