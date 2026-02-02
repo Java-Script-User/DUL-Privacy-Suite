@@ -12,6 +12,7 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, error};
+use reqwest::Proxy as ReqwestProxy;
 use crate::kill_switch::KillSwitch;
 use crate::proxy::ProxyServer;
 use crate::config::Config;
@@ -86,6 +87,36 @@ pub struct ApiState {
     pub config: Arc<Config>,
     pub proxy_handle: Arc<RwLock<Option<tokio::task::JoinHandle<()>>>>,
     pub system_proxy: Arc<RwLock<SystemProxy>>,
+}
+
+async fn wait_for_proxy_ready() -> bool {
+    let proxy = match ReqwestProxy::all("http://127.0.0.1:8888") {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+    let client = match reqwest::Client::builder()
+        .proxy(proxy)
+        .timeout(Duration::from_secs(5))
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+
+    for attempt in 1..=10 {
+        let res = client
+            .get("https://check.torproject.org/api/ip")
+            .send()
+            .await;
+        if let Ok(resp) = res {
+            if resp.status().is_success() {
+                return true;
+            }
+        }
+        tokio::time::sleep(Duration::from_millis(500 * attempt)).await;
+    }
+
+    false
 }
 
 impl ApiState {
@@ -407,28 +438,29 @@ async fn toggle_connection(
         let config = (*state.config).clone();
         
         let handle = tokio::spawn(async move {
-            match ProxyServer::new(config.clone(), Some(proxy_state.clone())).await {
-                Ok(proxy) => {
+            match ProxyServer::new_with_listener(config.clone(), Some(proxy_state.clone())).await {
+                Ok((proxy, listener)) => {
                     proxy_state.add_log("info", "✅ Connected to Tor! Using 6,000+ volunteer nodes".into(), "general").await;
-                    proxy_state.add_log("info", "🌐 Proxy listening on all network interfaces (0.0.0.0:8888)".into(), "network").await;
+                    proxy_state.add_log("info", "🌐 Proxy bound to 0.0.0.0:8888".into(), "network").await;
+                    
+                    // Start accept loop in background FIRST, before enabling system proxy
+                    let listen_state = proxy_state.clone();
+                    let accept_handle = tokio::spawn(async move {
+                        if let Err(e) = proxy.run(listener).await {
+                            error!("Proxy accept loop error: {}", e);
+                            listen_state.add_log("error", format!("Proxy error: {}", e), "general").await;
+                        }
+                    });
+                    
+                    // Give the accept loop a moment to start
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                    
                     proxy_state.add_log("info", "📱 Other devices can connect using your LAN IP:8888".into(), "network").await;
                     
-                    // Only enable system proxy AFTER Tor connection succeeds
-                    if is_elevated {
-                        match proxy_state.system_proxy.write().await.enable("127.0.0.1:8888") {
-                            Ok(_) => {
-                                proxy_state.add_log("info", "✅ System proxy configured - all apps will be protected".to_string(), "general").await;
-                                proxy_state.update_stats(|s| s.auto_proxy_enabled = true).await;
-                            }
-                            Err(e) => {
-                                proxy_state.add_log("warn", format!("Failed to configure system proxy: {}", e), "general").await;
-                            }
-                        }
-                    }
-                    
+                    // Mark proxy running, but don't claim Tor connectivity until verified
                     proxy_state.update_stats(|s| {
                         s.proxy_running = true;
-                        s.tor_connected = true;
+                        s.tor_connected = false;
                         s.requests_blocked = 0;
                         s.trackers_blocked = 0;
                         s.webrtc_blocked = 0;
@@ -438,6 +470,63 @@ async fn toggle_connection(
                         s.uptime_seconds = 0;
                         s.security_threats_detected = 0;
                     }).await;
+
+                    // Continuously verify proxy connectivity, then enable system proxy
+                    let readiness_state = proxy_state.clone();
+                    tokio::spawn(async move {
+                        let mut logged_wait = false;
+                        loop {
+                            if !logged_wait {
+                                readiness_state.add_log("info", "⏳ Verifying proxy connectivity before enabling system proxy...".to_string(), "general").await;
+                                logged_wait = true;
+                            }
+                            if wait_for_proxy_ready().await {
+                                readiness_state.add_log("info", "✅ Proxy connectivity verified".to_string(), "general").await;
+                                if is_elevated {
+                                    match readiness_state.system_proxy.write().await.enable("127.0.0.1:8888") {
+                                        Ok(_) => {
+                                            readiness_state.add_log("info", "✅ System proxy configured - all apps will be protected".to_string(), "general").await;
+                                            readiness_state.update_stats(|s| s.auto_proxy_enabled = true).await;
+                                        }
+                                        Err(e) => {
+                                            readiness_state.add_log("warn", format!("Failed to configure system proxy: {}", e), "general").await;
+                                        }
+                                    }
+                                }
+                                readiness_state.update_stats(|s| s.tor_connected = true).await;
+
+                                // Start a watchdog to disable system proxy if Tor/proxy stops working
+                                let watchdog_state = readiness_state.clone();
+                                tokio::spawn(async move {
+                                    let mut failures = 0u32;
+                                    loop {
+                                        if wait_for_proxy_ready().await {
+                                            failures = 0;
+                                        } else {
+                                            failures += 1;
+                                        }
+
+                                        if failures >= 3 {
+                                            watchdog_state.add_log("error", "❌ Proxy connectivity lost. Disabling system proxy to restore internet.".to_string(), "general").await;
+                                            if let Err(e) = watchdog_state.system_proxy.write().await.disable() {
+                                                error!("Failed to disable system proxy after connectivity loss: {}", e);
+                                            } else {
+                                                watchdog_state.update_stats(|s| {
+                                                    s.auto_proxy_enabled = false;
+                                                    s.tor_connected = false;
+                                                }).await;
+                                            }
+                                            break;
+                                        }
+
+                                        tokio::time::sleep(Duration::from_secs(10)).await;
+                                    }
+                                });
+                                break;
+                            }
+                            tokio::time::sleep(Duration::from_secs(5)).await;
+                        }
+                    });
                     
                     *proxy_state.connected_time.write().await = Some(std::time::Instant::now());
                     *proxy_state.total_connected_duration.write().await = 0;
@@ -445,7 +534,10 @@ async fn toggle_connection(
                     info!("✅ Privacy Suite proxy is running!");
                     proxy_state.add_log("info", "✅ All systems operational - Privacy Suite is LIVE".to_string(), "general").await;
                     
-                    let _ = proxy.run().await;
+                    // Wait for accept loop to finish (it runs until disconnect)
+                    let _ = accept_handle.await;
+                    
+                    // Clean up when proxy stops
                     if let Some(connected_since) = proxy_state.connected_time.write().await.take() {
                         let session_duration = connected_since.elapsed().as_secs();
                         *proxy_state.total_connected_duration.write().await += session_duration;

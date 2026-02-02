@@ -17,24 +17,25 @@ pub struct ProxyServer {
 }
 
 impl ProxyServer {
-    // Create a new proxy server
-    pub async fn new(config: Config, app_state: Option<ApiState>) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    // Create a new proxy server, connect to Tor, and bind the listener
+    pub async fn new_with_listener(config: Config, app_state: Option<ApiState>) -> Result<(Self, TcpListener), Box<dyn std::error::Error + Send + Sync>> {
         let router = Router::new(config.clone(), app_state.clone()).await?;
         
-        Ok(Self {
+        // Bind listener immediately so we know port 8888 is ready
+        let addr: std::net::SocketAddr = "0.0.0.0:8888".parse()?;
+        let listener = TcpListener::bind(addr).await?;
+        info!("✅ Proxy server bound to {}", addr);
+        
+        Ok((Self {
             config,
             router,
             app_state,
-        })
+        }, listener))
     }
     
-    // Main accept loop
-    pub async fn run(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Always bind to 0.0.0.0:8888 for network-wide access (zero-config setup)
-        let addr: std::net::SocketAddr = "0.0.0.0:8888".parse()?;
-        let listener = TcpListener::bind(addr).await?;
-        
-        info!("Proxy server listening on {}", addr);
+    // Main accept loop - takes pre-bound listener
+    pub async fn run(self, listener: TcpListener) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("✅ Proxy server accepting connections");
         let stats_router = self.router.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));

@@ -1,6 +1,6 @@
 [package]
 name = "privacy_suite"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["DUL Privacy Suite"]
 description = "Next-generation privacy suite with multi-hop routing and blockchain integration"
@@ -41,6 +41,7 @@ toml = "0.8"
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
 
 # Utilities
 dirs = "5.0"

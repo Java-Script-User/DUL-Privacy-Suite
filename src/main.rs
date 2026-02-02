@@ -1,5 +1,6 @@
 use tracing::{info, warn, error};
 use tracing_subscriber;
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 mod config;
 mod crypto;
@@ -29,10 +30,25 @@ fn get_lan_ip() -> Option<String> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Logging
+    info!("Build version: {}", env!("CARGO_PKG_VERSION"));
+    if let Ok(exe) = std::env::current_exe() {
+        info!("Backend path: {:?}", exe);
+    }
+    // Logging (file + stdout)
+    let log_dir = dirs::data_local_dir()
+        .unwrap_or_else(|| std::env::temp_dir())
+        .join("com.dulprivacy.suite");
+    let _ = std::fs::create_dir_all(&log_dir);
+    let log_file_path = log_dir.join("backend.log");
+    let file_appender = tracing_appender::rolling::never(&log_dir, "backend.log");
+    let (non_blocking, _log_guard) = tracing_appender::non_blocking(file_appender);
+
     tracing_subscriber::fmt()
         .with_env_filter("privacy_suite=info")
+        .with_writer(non_blocking.and(std::io::stdout))
         .init();
+
+    eprintln!("Logging to: {:?}", log_file_path);
 
     info!("🚀 Starting Privacy Suite...");
     

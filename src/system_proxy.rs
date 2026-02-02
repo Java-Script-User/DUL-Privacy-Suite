@@ -8,6 +8,7 @@ pub struct SystemProxy {
 struct ProxyState {
     enabled: bool,
     server: String,
+    override_list: String,
 }
 
 impl SystemProxy {
@@ -50,6 +51,21 @@ impl SystemProxy {
                 } else {
                     self.disable_windows()?;
                 }
+
+                let _ = Command::new("reg")
+                    .args(&[
+                        "add",
+                        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+                        "/v",
+                        "ProxyOverride",
+                        "/t",
+                        "REG_SZ",
+                        "/d",
+                        &original.override_list,
+                        "/f"
+                    ])
+                    .output();
+
                 info!("✓ Original proxy settings restored");
                 Ok(())
             } else {
@@ -95,11 +111,40 @@ impl SystemProxy {
             .unwrap_or("")
             .to_string();
 
-        Ok(ProxyState { enabled, server })
+        let override_output = Command::new("reg")
+            .args(&[
+                "query",
+                "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+                "/v",
+                "ProxyOverride"
+            ])
+            .output()
+            .map_err(|e| format!("Failed to query proxy override: {}", e))?;
+
+        let override_list = String::from_utf8_lossy(&override_output.stdout)
+            .lines()
+            .find(|line| line.contains("ProxyOverride"))
+            .and_then(|line| line.split_whitespace().last())
+            .unwrap_or("")
+            .to_string();
+
+        Ok(ProxyState { enabled, server, override_list })
     }
 
     #[cfg(target_os = "windows")]
     fn enable_windows(&self, proxy_addr: &str) -> Result<(), String> {
+        let normalized = if proxy_addr.contains("0.0.0.0") {
+            proxy_addr.replace("0.0.0.0", "127.0.0.1")
+        } else {
+            proxy_addr.to_string()
+        };
+
+        let proxy_value = if normalized.contains('=') {
+            normalized
+        } else {
+            format!("http={};https={}", normalized, normalized)
+        };
+
         let result1 = Command::new("reg")
             .args(&[
                 "add",
@@ -109,7 +154,7 @@ impl SystemProxy {
                 "/t",
                 "REG_SZ",
                 "/d",
-                proxy_addr,
+                &proxy_value,
                 "/f"
             ])
             .output()
@@ -136,6 +181,25 @@ impl SystemProxy {
 
         if !result2.status.success() {
             return Err("Failed to enable proxy in registry".to_string());
+        }
+
+        let result3 = Command::new("reg")
+            .args(&[
+                "add",
+                "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+                "/v",
+                "ProxyOverride",
+                "/t",
+                "REG_SZ",
+                "/d",
+                "localhost;127.0.0.1;<local>",
+                "/f"
+            ])
+            .output()
+            .map_err(|e| format!("Failed to set proxy override: {}", e))?;
+
+        if !result3.status.success() {
+            return Err("Failed to set proxy override in registry".to_string());
         }
 
         let _ = Command::new("rundll32.exe")
