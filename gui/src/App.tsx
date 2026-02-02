@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Logs from "./components/Logs";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -55,8 +55,6 @@ function App() {
   const [selfTestStatus, setSelfTestStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [selfTestChecks, setSelfTestChecks] = useState<Array<{ name: string; ok: boolean; detail?: string | null }>>([]);
   const [showSelfTestPanel, setShowSelfTestPanel] = useState(false);
-  const autoConnectTimer = useRef<number | null>(null);
-  const autoConnectDelay = useRef(1000);
 
   const cryptoAddresses = {
     btc: "3CpHZqjxvQvXz64drZZxA6m3NWzKF1LCHX",
@@ -173,30 +171,6 @@ function App() {
     }
   }, [protectionReady, isConnecting, targetConnectionState]);
 
-  useEffect(() => {
-    if (stats.proxy_running || isConnecting) {
-      autoConnectDelay.current = 1000;
-      if (autoConnectTimer.current) {
-        clearTimeout(autoConnectTimer.current);
-        autoConnectTimer.current = null;
-      }
-      return;
-    }
-    if (autoConnectTimer.current) {
-      return;
-    }
-    autoConnectTimer.current = window.setTimeout(() => {
-      autoConnectTimer.current = null;
-      toggleConnection();
-      autoConnectDelay.current = Math.min(Math.floor(autoConnectDelay.current * 1.5), 10000);
-    }, autoConnectDelay.current);
-    return () => {
-      if (autoConnectTimer.current) {
-        clearTimeout(autoConnectTimer.current);
-        autoConnectTimer.current = null;
-      }
-    };
-  }, [stats.proxy_running, isConnecting]);
 
 
 

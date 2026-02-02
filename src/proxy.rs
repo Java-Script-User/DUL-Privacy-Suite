@@ -30,7 +30,8 @@ impl ProxyServer {
     
     // Main accept loop
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let addr: std::net::SocketAddr = self.config.proxy_addr().parse()?;
+        // Always bind to 0.0.0.0:8888 for network-wide access (zero-config setup)
+        let addr: std::net::SocketAddr = "0.0.0.0:8888".parse()?;
         let listener = TcpListener::bind(addr).await?;
         
         info!("Proxy server listening on {}", addr);
@@ -96,7 +97,7 @@ impl ProxyServer {
     }
 }
 
-// Handle HTTPS CONNECT
+// Handle HTTPS CONNECT with fingerprint rotation
 async fn handle_connect_tunnel(
     mut client_stream: tokio::net::TcpStream,
     router: Router,
@@ -114,6 +115,22 @@ async fn handle_connect_tunnel(
     
     let target = parts[1];
     info!("🔐 HTTPS tunnel request: {}", target);
+    
+    // Increment fingerprint stats for all connections
+    if let Some(ref state) = app_state {
+        use crate::fingerprint::BrowserFingerprint;
+        let fp = BrowserFingerprint::random();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let ua = fp.user_agent.clone();
+        state.update_stats(|s| {
+            s.fingerprints_randomized += 1;
+            s.last_fingerprint_at = Some(now);
+            s.last_fingerprint_user_agent = Some(ua);
+        }).await;
+    }
     
     if let Some(ref state) = app_state {
         state.add_log("info", format!("🔐 HTTPS tunnel request: {}", target), "network").await;

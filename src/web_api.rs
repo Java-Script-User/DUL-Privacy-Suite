@@ -11,7 +11,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
-use tracing::info;
+use tracing::{info, error};
 use crate::kill_switch::KillSwitch;
 use crate::proxy::ProxyServer;
 use crate::config::Config;
@@ -389,18 +389,10 @@ async fn toggle_connection(
             state.add_log("info", "🌍 Exit location: Auto (Random)".to_string(), "network").await;
             state.update_stats(|s| s.exit_country = None).await;
         }
-        if sys_proxy::is_elevated() {
-            let proxy_addr = (*state.config).proxy_addr();
-            match state.system_proxy.write().await.enable(&proxy_addr) {
-                Ok(_) => {
-                    state.add_log("info", "✅ System proxy configured - all apps will be protected".to_string(), "general").await;
-                    state.update_stats(|s| s.auto_proxy_enabled = true).await;
-                }
-                Err(e) => {
-                    state.add_log("warn", format!("Failed to configure system proxy: {}", e), "general").await;
-                }
-            }
-
+        
+        // Configure firewall first (doesn't break internet if Tor fails)
+        let is_elevated = sys_proxy::is_elevated();
+        if is_elevated {
             match sys_proxy::allow_inbound_port(8888) {
                 Ok(_) => {
                     state.add_log("info", "✅ Firewall opened for LAN devices (TCP 8888)".to_string(), "general").await;
@@ -420,6 +412,19 @@ async fn toggle_connection(
                     proxy_state.add_log("info", "✅ Connected to Tor! Using 6,000+ volunteer nodes".into(), "general").await;
                     proxy_state.add_log("info", "🌐 Proxy listening on all network interfaces (0.0.0.0:8888)".into(), "network").await;
                     proxy_state.add_log("info", "📱 Other devices can connect using your LAN IP:8888".into(), "network").await;
+                    
+                    // Only enable system proxy AFTER Tor connection succeeds
+                    if is_elevated {
+                        match proxy_state.system_proxy.write().await.enable("127.0.0.1:8888") {
+                            Ok(_) => {
+                                proxy_state.add_log("info", "✅ System proxy configured - all apps will be protected".to_string(), "general").await;
+                                proxy_state.update_stats(|s| s.auto_proxy_enabled = true).await;
+                            }
+                            Err(e) => {
+                                proxy_state.add_log("warn", format!("Failed to configure system proxy: {}", e), "general").await;
+                            }
+                        }
+                    }
                     
                     proxy_state.update_stats(|s| {
                         s.proxy_running = true;
@@ -454,7 +459,24 @@ async fn toggle_connection(
                     proxy_state.add_log("info", "Proxy stopped".to_string(), "general").await;
                 }
                 Err(e) => {
-                    proxy_state.add_log("error", format!("Failed to start proxy: {}", e), "general").await;
+                    error!("Failed to connect to Tor: {}", e);
+                    proxy_state.add_log("error", format!("❌ Failed to connect to Tor: {}", e), "general").await;
+                    proxy_state.add_log("warn", "💡 Try: 1) Check internet connection 2) Disable firewall temporarily 3) Use bridges if Tor is blocked".to_string(), "general").await;
+                    
+                    // Disable system proxy if Tor failed to prevent breaking internet
+                    if is_elevated {
+                        if let Err(e) = proxy_state.system_proxy.write().await.disable() {
+                            error!("Failed to restore proxy after Tor failure: {}", e);
+                        } else {
+                            proxy_state.add_log("info", "System proxy disabled (Tor connection failed)".to_string(), "general").await;
+                        }
+                    }
+                    
+                    proxy_state.update_stats(|s| {
+                        s.proxy_running = false;
+                        s.tor_connected = false;
+                        s.auto_proxy_enabled = false;
+                    }).await;
                 }
             }
         });

@@ -238,6 +238,8 @@ pub fn is_elevated() -> bool {
 #[cfg(target_os = "windows")]
 pub fn allow_inbound_port(port: u16) -> Result<(), String> {
     let rule_name = "Privacy Suite Proxy";
+    
+    // Remove existing rule if present
     let _ = Command::new("netsh")
         .args(&[
             "advfirewall",
@@ -248,6 +250,7 @@ pub fn allow_inbound_port(port: u16) -> Result<(), String> {
         ])
         .output();
 
+    // Add rule for all network profiles
     let status = Command::new("netsh")
         .args(&[
             "advfirewall",
@@ -259,15 +262,18 @@ pub fn allow_inbound_port(port: u16) -> Result<(), String> {
             "action=allow",
             "protocol=TCP",
             &format!("localport={}", port),
-            "profile=private,domain",
+            "profile=private,domain,public",
+            "enable=yes",
         ])
         .output()
         .map_err(|e| format!("Failed to add firewall rule: {}", e))?;
 
     if !status.status.success() {
-        return Err("Failed to configure firewall rule".to_string());
+        let stderr = String::from_utf8_lossy(&status.stderr);
+        return Err(format!("Failed to configure firewall rule: {}", stderr));
     }
 
+    info!("✅ Firewall rule added for port {} (all network profiles)", port);
     Ok(())
 }
 

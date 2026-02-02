@@ -43,11 +43,16 @@ impl TorNetwork {
         builder.bridges().bridges().push(bridge1);
         builder.bridges().bridges().push(bridge2);
 
-        let lyrebird_path = std::env::current_exe()
+        let lyrebird_path = std::env::var("LYREBIRD_PATH")
             .ok()
-            .and_then(|p| p.parent().map(|d| d.join("lyrebird.exe")))
-            .filter(|p| p.exists())
-            .map(|p| p.display().to_string())
+            .filter(|p| !p.trim().is_empty())
+            .or_else(|| {
+                std::env::current_exe()
+                    .ok()
+                    .and_then(|p| p.parent().map(|d| d.join("lyrebird.exe")))
+                    .filter(|p| p.exists())
+                    .map(|p| p.display().to_string())
+            })
             .unwrap_or_else(|| "lyrebird".to_string());
 
         let mut transport = TransportConfigBuilder::default();

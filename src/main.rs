@@ -82,35 +82,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     
     // Give API time to boot
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
     
     info!("✅ Privacy Suite ready!");
     info!("📊 Web GUI: http://127.0.0.1:1420");
-    info!("🔌 Proxy: {} (disconnected - click Connect in GUI)", config.proxy_addr());
+    info!("🔌 Proxy: {} (disconnected - will auto-connect)", config.proxy_addr());
 
     if is_admin {
-        api_state.add_log("info", "Auto-starting protection and system proxy...".to_string(), "general").await;
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(5))
-            .build();
-        if let Ok(client) = client {
-            for attempt in 1..=10 {
+        info!("🔧 Will auto-configure: System Proxy + Firewall Rule");
+    }
+    
+    api_state.add_log("info", "Auto-starting Tor connection in 3 seconds...".to_string(), "general").await;
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build();
+    if let Ok(client) = client {
+        tokio::spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+            info!("Starting auto-connect sequence...");
+            for attempt in 1..=30 {
                 let result = client
                     .post("http://127.0.0.1:3030/api/connection")
                     .json(&serde_json::json!({ "connect": true }))
                     .send()
                     .await;
-                if result.is_ok() {
-                    break;
+                match result {
+                    Ok(response) => {
+                        if response.status().is_success() {
+                            info!("✅ Auto-connect successful on attempt {}", attempt);
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        if attempt == 30 {
+                            error!("Auto-connect failed after {} attempts: {}", attempt, e);
+                        }
+                    }
                 }
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                if attempt == 10 {
-                    api_state.add_log("warn", "Auto-start failed. Use CONNECT button.".to_string(), "general").await;
-                }
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             }
-        }
-    } else {
-        api_state.add_log("warn", "Run as Administrator for automatic system proxy (seamless mode)".to_string(), "general").await;
+        });
     }
     
     if let Some(ref ip) = lan_ip {
